@@ -10,12 +10,12 @@
 #import "TestThread.h"
 #import "DataManager.h"
 
+
 @implementation ViewController
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    [DataManager sharedManager];
-    // Do any additional setup after loading the view, typically from a nib.
+    self.count = 0;
 }
 
 - (void)didReceiveMemoryWarning {
@@ -26,13 +26,21 @@
 - (IBAction)test:(UIButton *)sender
 {
     NSLog(@"Test starting...");
+
+    [NSTimer scheduledTimerWithTimeInterval:0.02 target:self selector:@selector(runTest) userInfo:nil repeats:YES];
+}
+
+- (void)runTest;
+{
+    NSLog(@"Run test");
     
     for (int x = 0; x < 10; x ++)
     {
-        NSString *name = [NSString stringWithFormat:@"Test thread %d", x];
-        [[[TestThread alloc] initWithName:name] start];
+        NSString *name = [NSString stringWithFormat:@"Test thread %d", self.count];
+        TestThread *thread = [[TestThread alloc] initWithName:name];
+        [thread start];
+        self.count ++;
     }
 }
-
 
 @end

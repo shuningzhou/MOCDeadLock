@@ -12,7 +12,8 @@
 @interface DataManager : NSObject
 
 @property (nonatomic, readonly) NSManagedObjectContext *managedObjectContext;
+@property (nonatomic, strong) NSString *name;
 
-+ (instancetype) sharedManager;
+- (id)initWithName:(NSString*)name;
 
 @end

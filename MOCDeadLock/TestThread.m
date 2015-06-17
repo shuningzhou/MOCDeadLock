@@ -10,6 +10,15 @@
 #import "TestObject.h"
 #import "DataManager.h"
 
+NSString * const DEALLOC_LOCK = @"DEALLOC_LOCK";
+
+@interface TestThread ()
+
+@property (nonatomic, strong) DataManager *dataManager;
+
+@end
+
+
 @implementation TestThread
 
 - (instancetype)initWithName:(NSString*)name;
@@ -19,26 +28,37 @@
     if (self)
     {
         [self setName:name];
+
     }
-    
     return self;
 }
 
 - (void)dealloc;
 {
-    NSLog(@"Dealloc %@", self.name);
+    @synchronized(DEALLOC_LOCK)
+    {
+        self.dataManager = nil;
+    }
 }
 
 - (void)main;
 {
+    NSLog(@"Started = %@", self.name);
+    
+    self.dataManager = [[DataManager alloc] initWithName:self.name];
+
     @autoreleasepool
     {
         for (int x = 0; x < 5; x++)
         {
-            [TestObject insertedInContext:[DataManager sharedManager].managedObjectContext];
+            [TestObject insertedInContext:self.dataManager.managedObjectContext];
         }
         
-        [[DataManager sharedManager].managedObjectContext save:nil];
+        @synchronized(DEALLOC_LOCK)
+        {
+            [self.dataManager.managedObjectContext save:nil];
+        }
+
     }
 }
 

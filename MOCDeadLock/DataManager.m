@@ -21,44 +21,18 @@ static NSPersistentStoreCoordinator *sPersistentStoreCoordinator;
 
 @implementation DataManager
 
-+ (instancetype) sharedManager;
+- (void)removeMOC;
 {
-    DataManager* dataManager = [[[NSThread currentThread] threadDictionary] objectForKey:@"DataManager"];
-    
-    if (dataManager.persistentStoreCoordinator != sPersistentStoreCoordinator)
-    {
-        dataManager = nil;
-    }
-    
-    NSString *threadName = [[NSThread currentThread] name];
-    
-    if (dataManager)
-    {
-        return dataManager;
-    }
-    else
-    {
-        dataManager = [[self alloc] init];
-        [[[NSThread currentThread] threadDictionary] setObject:dataManager forKey:@"DataManager"];
-        
-        if ([NSThread isMainThread]) {
-            NSLog(@"Created dataManager for the main thread");
-        }
-        else
-        {
-            NSLog(@"Created dataManager for %@", threadName);
-        }
-        
-        return dataManager;
-    }
+    [[[NSThread currentThread] threadDictionary] removeObjectForKey:@"DataManager"];
 }
 
-- (id)init;
+- (id)initWithName:(NSString*)name;
 {
     self = [super init];
     
     if (self)
-    {
+    {  
+        self.name = name;
         [self managedObjectContext];
         
     }
@@ -67,8 +41,7 @@ static NSPersistentStoreCoordinator *sPersistentStoreCoordinator;
 
 - (void)dealloc;
 {
-    NSString *threadName = [[NSThread currentThread] name];
-    NSLog(@"Removing dataManager on %@", threadName);
+    NSLog(@"Removing dataManager %@", self.name);
 }
 
 - (NSManagedObjectContext *) managedObjectContext;
@@ -111,30 +84,33 @@ static NSPersistentStoreCoordinator *sPersistentStoreCoordinator;
 
 - (NSPersistentStoreCoordinator *)persistentStoreCoordinator;
 {
-    if (sPersistentStoreCoordinator != nil) {
+    @synchronized([self class])
+    {
+        
+        if (sPersistentStoreCoordinator != nil) {
+            return sPersistentStoreCoordinator;
+        }
+        
+        sPersistentStoreCoordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel: [self managedObjectModel]];
+        NSURL *storeURL = [[self applicationDocumentsDirectory] URLByAppendingPathComponent:@"MOCDeadLock.sqlite"];
+        NSError *error = nil;
+        NSString *failureReason = @"There was an error creating or loading the application's saved data.";
+        
+        if (![sPersistentStoreCoordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:nil error:&error]) {
+            // Report any error we got.
+            NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+            dict[NSLocalizedDescriptionKey] = @"Failed to initialize the application's saved data";
+            dict[NSLocalizedFailureReasonErrorKey] = failureReason;
+            dict[NSUnderlyingErrorKey] = error;
+            error = [NSError errorWithDomain:@"YOUR_ERROR_DOMAIN" code:9999 userInfo:dict];
+            // Replace this with code to handle the error appropriately.
+            // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
+            NSLog(@"Unresolved error %@, %@", error, [error userInfo]);
+            abort();
+        }
+        
         return sPersistentStoreCoordinator;
     }
-    
-    sPersistentStoreCoordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel: [self managedObjectModel]];
-    NSURL *storeURL = [[self applicationDocumentsDirectory] URLByAppendingPathComponent:@"MOCDeadLock.sqlite"];
-    NSError *error = nil;
-    NSString *failureReason = @"There was an error creating or loading the application's saved data.";
-    
-    if (![sPersistentStoreCoordinator addPersistentStoreWithType:NSSQLiteStoreType configuration:nil URL:storeURL options:nil error:&error]) {
-        // Report any error we got.
-        NSMutableDictionary *dict = [NSMutableDictionary dictionary];
-        dict[NSLocalizedDescriptionKey] = @"Failed to initialize the application's saved data";
-        dict[NSLocalizedFailureReasonErrorKey] = failureReason;
-        dict[NSUnderlyingErrorKey] = error;
-        error = [NSError errorWithDomain:@"YOUR_ERROR_DOMAIN" code:9999 userInfo:dict];
-        // Replace this with code to handle the error appropriately.
-        // abort() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-        NSLog(@"Unresolved error %@, %@", error, [error userInfo]);
-        abort();
-    }
-    
-    
-    return sPersistentStoreCoordinator;
 }
 
 

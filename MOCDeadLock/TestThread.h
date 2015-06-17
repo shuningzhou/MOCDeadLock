@@ -8,6 +8,8 @@
 
 #import <Foundation/Foundation.h>
 
+extern NSString * const DEALLOC_LOCK;
+
 @interface TestThread : NSThread
 
 - (instancetype)initWithName:(NSString*)name;

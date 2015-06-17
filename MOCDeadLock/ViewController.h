@@ -10,6 +10,8 @@
 
 @interface ViewController : UIViewController
 
+@property (nonatomic) NSInteger count;
+
 - (IBAction)test:(UIButton *)sender;
 
 @end
